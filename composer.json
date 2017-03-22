@@ -1,0 +1,23 @@
+{
+    "name": "wmy/wmy",
+    "description": "wmy",
+    "keywords": [
+        "wmy"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "WMY",
+            "email": "mengyang1229@126.com"
+        }
+    ],
+    "autoload": {
+        "files": [
+            "src/helpers.php"
+        ],
+        "psr-4": {
+            "Wmy\\": "src/"
+        }
+    },
+    "minimum-stability": "dev"
+}
