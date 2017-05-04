@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-default/index.css">
+    <style>
+        input[type=file].el-upload__input{
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div id="app" class="col-xs-12" v-loading.fullscreen.lock="fullscreenLoading">
+        <el-button type="text" @click="dialogVisible = true">显示结果</el-button>
+        <el-dialog
+                title="解析结果"
+                v-model="dialogVisible"
+                :before-close="handleClose">
+            <el-row>
+                <el-col :span="24">
+                    <el-popover
+                            ref="img"
+                            placement="left"
+                            trigger="hover">
+                        <img :src="img_src" style="max-width: 100%; max-height: 90%;" />
+                    </el-popover>
+                    <img :src="img_src" :class="{
+                        'hide': !img_src
+                    }" style="max-width: 100%;" v-popover:img/>
+                </el-col>
+                <hr />
+                <el-col :span="24">
+                    <el-table
+                        ref="multipleTable"
+                        :data="words"
+                        @selection-change="handleSelectionChange"
+                    >
+                        <el-table-column
+                            type="selection"
+                            width="55">
+                        </el-table-column>
+                        <el-table-column property="text" label="内容"></el-table-column>
+                        <el-table-column
+                                fixed="right"
+                                label="操作"
+                                width="100">
+                            <template scope="scope">
+                                <el-button class="copy-btn" type="text" size="small" :data-copy-content="scope.row.text" title="复制内容到剪贴板">
+                                    <i class="fa fa-clipboard"></i>
+                                </el-button>
+                                <el-button type="text" size="small" title="插入">
+                                    <i class="fa fa-plus" @click="insertWords(scope.$index)"></i>
+                                </el-button>
+                                <el-button type="text" size="small" title="删除">
+                                    <i class="fa fa-trash" @click="delWords(scope.$index)"></i>
+                                </el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </el-col>
+            </el-row>
+            <div style="margin-top: 20px">
+                <el-button class="fa fa-clipboard copy-btn" title="复制选中的内容到剪贴板" :data-copy-content="copy_content" @click="copySelected()"></el-button>
+            </div>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="dialogVisible = false">取 消</el-button>
+                <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
+            </span>
+        </el-dialog>
+
+        <el-form ref="form" :model="form" label-width="80px" :action="form_action" :method="form_method" enctype="multipart/form-data">
+            <el-form-item>
+                <el-upload
+                        name="image"
+                        class="upload-demo"
+                        ref="upload"
+                        :action="form_action"
+                        :on-preview="handlePreview"
+                        :on-remove="handleRemove"
+                        :on-progress="uploading"
+                        :on-success="resultHandle"
+                        :file-list="fileList"
+                        :auto-upload="true"
+                        drag>
+                    <!-- multiple -->
+                    <i class="el-icon-upload"></i>
+                    <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+                    <!-- <div class="el-upload__tip" slot="tip">只能上传jpg/png文件，且不超过500kb</div> -->
+                </el-upload>
+            </el-form-item>
+            <el-form-item label="">
+                <el-input v-model="image_url" name="image_url" placeholder="输入图片URL"></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="onSubmit">提交</el-button>
+                <el-button>取消</el-button>
+            </el-form-item>
+        </el-form>
+        <!-- <el-progress type="circle" :percentage="0"></el-progress>
+        <el-progress type="circle" :percentage="25"></el-progress>
+        <el-progress type="circle" :percentage="100" status="success"></el-progress>
+        <el-progress type="circle" :percentage="50" status="exception"></el-progress> -->
+    </div>
+</div>
+<script src="https://cdn.bootcss.com/clipboard.js/1.6.1/clipboard.min.js"></script>
+<script src="https://cdn.bootcss.com/vue/2.2.6/vue.min.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src='https://cdn.rawgit.com/naptha/tesseract.js/1.0.10/dist/tesseract.js'></script>
+<script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+<script>
+    /* 封装ajax函数
+     * @param {string}opt.type http连接的方式，包括POST和GET两种方式
+     * @param {string}opt.url 发送请求的url
+     * @param {boolean}opt.async 是否为异步请求，true为异步的，false为同步的
+     * @param {object}opt.data 发送的参数，格式为对象类型
+     * @param {function}opt.success ajax发送并接收成功调用的回调函数
+     */
+    function ajax(opt) {
+        opt = opt || {};
+        opt.method = opt.method.toUpperCase() || 'POST';
+        opt.url = opt.url || '';
+        opt.async = opt.async || true;
+        opt.data = opt.data || null;
+        opt.success = opt.success || function () {};
+        var xmlHttp = null;
+        if (XMLHttpRequest) {
+            xmlHttp = new XMLHttpRequest();
+        }
+        else {
+            xmlHttp = new ActiveXObject('Microsoft.XMLHTTP');
+        }var params = [];
+        for (var key in opt.data){
+            params.push(key + '=' + opt.data[key]);
+        }
+        var postData = params.join('&');
+        if (opt.method.toUpperCase() === 'POST') {
+            xmlHttp.open(opt.method, opt.url, opt.async);
+            xmlHttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded;charset=utf-8');
+            xmlHttp.send(postData);
+        }
+        else if (opt.method.toUpperCase() === 'GET') {
+            xmlHttp.open(opt.method, opt.url + '?' + postData, opt.async);
+            xmlHttp.send(null);
+        }
+        xmlHttp.onreadystatechange = function () {
+            if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                opt.success(xmlHttp.responseText);
+            }
+        };
+    }
+
+    var _vue = new Vue({
+        el: '#app',
+        data: function(){
+            return {
+                copy_content: '',
+                error_msg: '',
+                fullscreenLoading: false,
+                dialogVisible: false,
+                img_src: '',
+                words: [],
+                form: {
+                },
+                form_method: 'POST',
+                form_action: './baidu_ocr.php',
+                image_url: 'http://ai.bdstatic.com/dist/1493288513/ai_images/technology/ocr-general/demo-card-3.png',
+                fileList: [
+                    // {
+                    //     name: 'food.jpeg',
+                    //     url: 'https://fuss10.elemecdn.com/3/63/4e7f3a15429bfda99bce42a18cdd1jpeg.jpeg?imageMogr2/thumbnail/360x360/format/webp/quality/100'
+                    // },
+                    // {
+                    //     name: 'food2.jpeg',
+                    //     url: 'https://fuss10.elemecdn.com/3/63/4e7f3a15429bfda99bce42a18cdd1jpeg.jpeg?imageMogr2/thumbnail/360x360/format/webp/quality/100'
+                    // }
+                ]
+            }
+        },
+        methods: {
+            handleClose(done) {
+                this.$confirm('确认关闭？').then(_ => {
+                        done();
+                }).catch(_ => {});
+            },
+            handleRemove: function(file, fileList) {
+                console.log(file, fileList);
+            },
+            handlePreview: function(file) {
+                console.log(file);
+            },
+            resultHandle: function(res){
+                console.log(res);
+                this.fullscreenLoading = false;
+                if(res.code){
+                    this.$message({
+                        message: res.msg,
+                        type: 'error'
+                    });
+                }else{
+                    this.words = res.data.words;
+                    this.img_src = res.data.img_src;
+                    this.dialogVisible = true;
+                }
+            },
+            uploading: function(){
+                this.fullscreenLoading = true;
+                setTimeout(() => {
+                    this.fullscreenLoading = false;
+                }, 60000);
+            },
+            onSubmit: function() {
+                console.log('submit!');
+                this.uploading();
+                if(this.image_url){
+                    var _vue = this;
+                    ajax({
+                        method: this.form_method,
+                        url: this.form_action,
+                        data: {
+                            image_url: _vue.image_url
+                        },
+                        success: function (res) {
+                            _vue.resultHandle(eval('('+res+')'));
+                        }
+                    });
+                }else{
+                    this.$refs.upload.submit();
+                }
+            },
+            insertWords: function(index){
+                console.log(index);
+                this.words.splice(index+1, 0, {
+                    text : ''
+                });
+            },
+            delWords: function(index){
+                this.$confirm('此操作将删除本行： '+this.words[index].text+',确定要删除吗？', '提示', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning'
+                }).then(() => {
+                    this.$delete(this.words, index);
+                    this.$message({
+                        type: 'info',
+                        message: '删除成功'
+                    });
+                }).catch(() => {
+                    this.$message({
+                        type: 'info',
+                        message: '已取消删除'
+                    });
+                });
+            },
+            handleSelectionChange: function(val){
+//                val.forEach(function(value, index, array) {
+//                    console.log(index);
+//                    console.log(value);
+//                    console.log(array);
+//                });
+//                val.forEach(row => {
+//                    this.$refs.multipleTable.toggleRowSelection(row);
+//                });
+//                console.log(val);
+//                console.log(JSON.parse(JSON.stringify(val)));
+                this.multipleSelection = val;
+            },
+            copySelected: function(){
+                var copy_content = '';
+                this.multipleSelection.forEach(function(value, index, array){
+                    copy_content += "\n"+value.text;
+                });
+                this.copy_content = copy_content;
+            }
+        }
+    });
+    var clipboard = new Clipboard('.copy-btn', {
+        text: function(trigger) {
+            return trigger.getAttribute('data-copy-content');
+        }
+    });
+    clipboard.on('success', function(e) {
+        console.info('Action:', e.action);
+        console.info('Text:', e.text);
+        console.info('Trigger:', e.trigger);
+        e.clearSelection();
+        _vue.$message({
+            message: '复制成功',
+            type: 'success'
+        });
+    });
+    clipboard.on('error', function(e) {
+        console.error('Action:', e.action);
+        console.error('Trigger:', e.trigger);
+        _vue.$message({
+            message: '复制失败',
+            type: 'warning'
+        });
+    });
+</script>
+<script src="https://cdn.bootcss.com/tether/1.4.0/js/tether.min.js"></script>
+<script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script src='https://cdn.rawgit.com/naptha/tesseract.js/1.0.10/dist/tesseract.js'></script>
+</body>
+</html>
