@@ -20,18 +20,14 @@
                 v-model="dialogVisible">
             <el-row>
                 <el-col :span="24">
-                    <el-popover
-                            ref="img"
-                            placement="left"
-                            trigger="hover">
-                        <img :src="img_src" style="max-width: 100%; max-height: 90%;" />
-                    </el-popover>
-                    <img :src="img_src" :class="{
-                        'hide': !img_src
-                    }" style="max-width: 100%;" v-popover:img/>
+                    <a class="col-xs-12 text-center" :href="img_src" target="_blank">
+                        <img class="img-responsive img-rounded img-zoom" :src="img_src" :class="{
+                            'hide': !img_src
+                        }" @click="dialogImgVisible = true" style="margin:auto; z-index:10;"/>
+                    </a>
                 </el-col>
-                <hr />
                 <el-col :span="24">
+                    <br />
                     <el-table
                         ref="multipleTable"
                         :data="words"
@@ -113,6 +109,7 @@
 <script src="https://unpkg.com/element-ui/lib/index.js"></script>
 <script src='https://cdn.rawgit.com/naptha/tesseract.js/1.0.10/dist/tesseract.js'></script>
 <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/jquery-zoom/1.7.20/jquery.zoom.min.js"></script>
 <script>
     /* 封装ajax函数
      * @param {string}opt.type http连接的方式，包括POST和GET两种方式
@@ -163,6 +160,7 @@
                 error_msg: '',
                 fullscreenLoading: false,
                 dialogVisible: false,
+                dialogImgVisible: false,
                 img_src: '',
                 words: [],
                 form: {
