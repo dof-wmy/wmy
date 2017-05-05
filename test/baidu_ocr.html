@@ -41,7 +41,11 @@
                             type="selection"
                             width="55">
                         </el-table-column>
-                        <el-table-column property="text" label="内容"></el-table-column>
+                        <el-table-column property="text" label="内容">
+                            <template scope="scope">
+                                <el-input v-model="scope.row.text" placeholder="请输入内容"></el-input>
+                            </template>
+                        </el-table-column>
                         <el-table-column
                                 fixed="right"
                                 label="操作"
