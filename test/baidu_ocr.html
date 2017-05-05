@@ -17,8 +17,7 @@
         <el-button type="text" @click="dialogVisible = true">显示结果</el-button>
         <el-dialog
                 title="解析结果"
-                v-model="dialogVisible"
-                :before-close="handleClose">
+                v-model="dialogVisible">
             <el-row>
                 <el-col :span="24">
                     <el-popover
@@ -180,11 +179,6 @@
             }
         },
         methods: {
-            handleClose(done) {
-                this.$confirm('确认关闭？').then(_ => {
-                        done();
-                }).catch(_ => {});
-            },
             handleRemove: function(file, fileList) {
                 console.log(file, fileList);
             },

@@ -11,7 +11,7 @@ namespace Wmy;
 
 class Upload
 {
-    static function upload($file_key, $save_path = '', $save_name = null, $options = []){
+    static function upload($file_key, $save_path = '.', $save_name = null, $options = []){
         if(!empty($_FILES[$file_key])){
             if($_FILES[$file_key]['error'] == 0){
                 $file_name = $_FILES[$file_key]['name'];//原文件名
@@ -30,9 +30,13 @@ class Upload
                     return common_return(406, "文件 {$save_name} 已存在", [$save_path, $save_name]);
                 }
                 move_uploaded_file($file_name_tmp, "{$save_path}/{$save_name}");//移动文件
-                return common_return(0, '上传文件成功', [
-                    'file' => "{$save_path}/{$save_name}"
-                ]);
+                if(file_exists("{$save_path}/{$save_name}")){
+                    return common_return(0, '上传文件成功', [
+                        'file' => "{$save_path}/{$save_name}"
+                    ]);
+                }else{
+                    return common_return(406, '上传文件失败');
+                }
             }else{
                 return common_return(406, '上传文件出错', $_FILES[$file_key]);
             }
