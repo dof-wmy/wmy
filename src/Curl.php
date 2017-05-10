@@ -78,7 +78,7 @@ class Curl
         $curl_result = curl_exec($curl);
         //转码
         if(!empty($options['encode_to'])){
-            mb_convert_encoding($curl_result, empty($options['encode_from']) ? 'UTF-8' : $options['encode_from'], $options['encode_to'])
+            mb_convert_encoding($curl_result, empty($options['encode_from']) ? 'UTF-8' : $options['encode_from'], $options['encode_to']);
         }
         $curl_http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         // 获得响应结果里的：头大小
