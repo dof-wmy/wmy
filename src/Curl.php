@@ -50,10 +50,16 @@ class Curl
         if(!empty($options['form_params'])){
             if(Self::$method == 'GET'){
                 $uri = '';
+                $form_params_i = 1;
+                $form_params_count = count($options['form_params']);
                 foreach($options['form_params'] as $param=>$value){
-                    $uri .= "&{$param}={$value}";
+                    $uri .= "{$param}=".urlencode($value);
+                    if($form_params_i++ < $form_params_count) {
+                        $uri .= "&";
+                    }
                 }
-                $url .= $uri;
+                $uri = rtrim($uri, '&');
+                $url .= (strstr($url, '?') ? '&' : '?').$uri;
             }else{
                 curl_setopt($curl, CURLOPT_POSTFIELDS, !empty($options['http_build_query']) ? http_build_query($options['form_params']) : $options['form_params']);
             }
@@ -78,7 +84,7 @@ class Curl
         $curl_result = curl_exec($curl);
         //转码
         if(!empty($options['encode_to'])){
-            mb_convert_encoding($curl_result, empty($options['encode_from']) ? 'UTF-8' : $options['encode_from'], $options['encode_to']);
+            $curl_result = mb_convert_encoding($curl_result, empty($options['encode_from']) ? 'UTF-8' : $options['encode_from'], $options['encode_to']);
         }
         $curl_http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         // 获得响应结果里的：头大小
