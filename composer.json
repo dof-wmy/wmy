@@ -19,7 +19,6 @@
             "Wmy\\": "src/"
         }
     },
-    "minimum-stability": "dev",
     "require": {
         "Intervention/image": "^2.3",
         "guzzlehttp/guzzle": "^6.2"
