@@ -15,6 +15,16 @@ if(!function_exists('common_return')){
     }
 }
 
+
+if(!function_exists('full_date')){
+    function full_date($time = null) {
+        if (is_null($time)) {
+            return date('Y-m-d H:i:s');
+        }
+        return date('Y-m-d H:i:s', $time);
+    }
+}
+
 if(!function_exists('json_die')){
     function json_die($data, $set_header = true){
         if($set_header){
