@@ -51,12 +51,6 @@ if(!function_exists('get_file_type')){
     }
 }
 
-if(!function_exists('test')){
-    function test($data, $file_name){
-
-    }
-}
-
 if(!function_exists('export_csv')){
     function export_csv($data, $file_name) {
         $result = '';
